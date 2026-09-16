@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Heimkino – 3D Raumplanung</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#d9d9d9;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+#ui{position:fixed;z-index:5;left:12px;right:12px;top:12px;pointer-events:none}
+.card{display:inline-block;background:rgba(255,255,255,.94);border-radius:12px;padding:10px 13px;box-shadow:0 3px 15px rgba(0,0,0,.16);font-size:13px;line-height:1.35}
+.card b{font-size:15px}
+.buttons{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:auto}
+button{border:0;border-radius:9px;padding:8px 10px;background:#222;color:#fff;font-size:12px}
+#note{margin-top:5px;color:#666}
+</style>
+</head>
+<body>
+<div id="ui">
+  <div class="card">
+    <b>Heimkino / Musikraum – echter 3D-Entwurf</b><br>
+    5,70 × 4,10 × 2,33 m · Sofa 42 cm vor Rückwand · BÅRSLÖV grau · Recamiere rechts
+    <div class="buttons">
+      <button id="front">Leinwand</button>
+      <button id="sofa">Sofa</button>
+      <button id="door">Tür</button>
+      <button id="top">Oben</button>
+      <button id="ceiling">Decke aus/ein</button>
+    </div>
+    <div id="note">Finger ziehen = umsehen · zwei Finger = zoomen</div>
+  </div>
+</div>
+<script src="https://unpkg.com/three@0.150.1/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.150.1/examples/js/controls/OrbitControls.js"></script>
+<script>
+const S=new THREE.Scene();
+S.background=new THREE.Color(0xe7e5df);
+const C=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.03,50);
+C.position.set(6.8,3.0,6.2);
+const R=new THREE.WebGLRenderer({antialias:true});
+R.setPixelRatio(Math.min(devicePixelRatio,2)); R.setSize(innerWidth,innerHeight);
+R.shadowMap.enabled=true; document.body.appendChild(R.domElement);
+const O=new THREE.OrbitControls(C,R.domElement);
+O.target.set(2.65,1.05,2.0); O.enableDamping=true; O.dampingFactor=.07;
+O.minDistance=1.8; O.maxDistance=11; O.maxPolarAngle=Math.PI*.495;
+
+const M={
+ floor:new THREE.MeshStandardMaterial({color:0xb99568,roughness:.75}),
+ wall:new THREE.MeshStandardMaterial({color:0xf3f1ec,roughness:.95}),
+ black:new THREE.MeshStandardMaterial({color:0x181818,roughness:.55}),
+ grey:new THREE.MeshStandardMaterial({color:0x85837f,roughness:1}),
+ oak:new THREE.MeshStandardMaterial({color:0xb38d5e,roughness:.75}),
+ white:new THREE.MeshStandardMaterial({color:0xe9e9e5,roughness:.55}),
+ panel:new THREE.MeshStandardMaterial({color:0x523a27,roughness:.8}),
+ felt:new THREE.MeshStandardMaterial({color:0x171717,roughness:.9}),
+ rug:new THREE.MeshStandardMaterial({color:0xc9c3b8,roughness:1})
+};
+function box(n,w,h,d,x,y,z,mat,ry=0){
+ let m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.name=n;
+ m.position.set(x,y,z); m.rotation.y=ry; m.castShadow=true;m.receiveShadow=true;S.add(m);return m;
+}
+function cyl(n,r,h,x,y,z,mat){
+ let m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,24),mat);m.name=n;
+ m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;S.add(m);return m;
+}
+const L=5.70,D=4.10,H=2.33;
+
+// Architecture
+box("Boden",L,.08,D,L/2,-.04,D/2,M.floor);
+box("Vorderwand",L,H,.10,L/2,H/2,0,M.wall);
+box("Rückwand",L,H,.10,L/2,H/2,D,M.wall);
+box("Linke Wand",.10,H,D,0,H/2,D/2,M.wall);
+box("Rechte Wand",.10,H,D,L,H/2,D/2,M.wall);
+const door=box("Tür",1,2.05,.045,4.05,1.025,-.035,M.oak);
+
+// Acoustic treatment – ONLY front wall + small left wrap
+box("Akustik Front",3.35,2.10,.055,1.68,1.08,.07,M.panel);
+for(let x=.12;x<3.28;x+=.115) box("Lamelle",.028,2.05,.035,x,1.08,.105,M.felt);
+box("Akustik Ecke",.055,2.10,.62,.07,1.08,.38,M.panel);
+for(let z=.12;z<.68;z+=.115) box("Ecklamelle",.035,2.05,.028,.105,1.08,z,M.felt);
+
+// Front
+box("120 Zoll Leinwand",2.66,.045,1.50,1.72,1.43,.12,M.white);
+box("Leinwandkante",2.72,.03,.04,1.72,1.43,.15,M.black);
+box("Stockholm TV Bank",1.80,.42,.42,1.72,.23,.27,M.oak);
+box("Polk ES35 Center",.85,.16,.24,1.72,.54,.27,M.black);
+for(const x of [.38,3.06]){
+ box("Polk ES55",.25,1.00,.30,x,.50,.55,M.black);
+ for(const z of [.32,.58,.85]) box("ES55 Treiber",.17,.10,.06,x,.50,z,M.white);
+}
+box("BenQ W4100i",.42,.16,.32,1.72,2.18,1.95,M.black);
+
+// BÅRSLÖV, back edge exactly y=3.68 => 42 cm from rear wall
+const sx=1.82, sy=3.68-1.53/2;
+box("BÅRSLÖV Sitz",2.36,.42,1.05,sx,.55,sy+.22,M.grey);
+box("BÅRSLÖV Rücken",2.36,.55,.18,sx,1.02,sy+.66,M.grey);
+box("BÅRSLÖV Arm links",.18,.55,1.05,sx-1.09,1.00,sy+.22,M.grey);
+box("BÅRSLÖV Arm rechts",.18,.55,1.05,sx+1.09,1.00,sy+.22,M.grey);
+box("BÅRSLÖV Recamiere",.95,.42,1.42,sx+.70,.55,sy-.13,M.grey);
+box("BÅRSLÖV Recamiere Rücken",.95,.55,.18,sx+.70,1.00,sy-.75,M.grey);
+box("Teppich",2.75,.018,1.90,2.0,.012,2.75,M.rug);
+box("Couchtisch",1.05,.34,.55,2.05,.30,2.25,M.black);
+
+// Rear LT4
+for(const x of [.48,3.25]) box("Teufel LT4",.22,1.15,.22,x,.575,3.72,M.black);
+
+// KALLAX oak effect
+box("KALLAX Eicheneffekt",1.47,.77,.39,5.49,.385,2.18,M.oak);
+for(let i=0;i<5;i++) box("KALLAX Trennsteg",.035,.73,.41,4.83+i*.33,.39,2.18,M.black);
+for(let j=0;j<3;j++) box("KALLAX Fachboden",1.43,.035,.41,5.49,.18+j*.33,2.18,M.black);
+
+// Music/game zone
+box("Kicker",.90,.72,.65,3.85,.36,2.35,M.black);
+box("Kicker Oberseite",.76,.05,.58,3.85,.74,2.35,M.black);
+box("Klapptisch",1.10,.08,.65,4.72,.78,1.10,M.oak);
+
+// Drum kit in opposite/right rear corner
+cyl("Drum Teppich",.48,.08,4.78,.45,3.48,M.black);
+cyl("Kick Drum",.28,.35,4.78,.63,3.48,M.black);
+for(const p of [[4.35,3.38],[5.12,3.38],[4.55,3.82],[5.08,3.78]]) cyl("Cymbal",.18,.05,p[0],1.18,p[1],M.white);
+
+// Exactly 4 Reflekt, all in listening rectangle
+function reflekt(x,z){
+ box("Teufel Reflekt",.22,.10,.16,x,2.27,z,M.white);
+ box("Reflekt Front",.17,.015,.02,x,2.21,z,M.black);
+}
+[[1.15,2.15],[2.55,2.15],[1.15,3.10],[2.55,3.10]].forEach(p=>reflekt(...p));
+
+// Ceiling hidden initially so the interior can be inspected
+const ceiling=box("Decke",L,.05,D,L/2,H,D/2,M.white);
+ceiling.visible=false;
+
+// Lights
+S.add(new THREE.HemisphereLight(0xffffff,0x777777,1.45));
+const dl=new THREE.DirectionalLight(0xffffff,1.7);dl.position.set(2.5,5,3);dl.castShadow=true;dl.shadow.mapSize.set(2048,2048);S.add(dl);
+const pl=new THREE.PointLight(0xffe5c7,.45,9);pl.position.set(2.6,1.9,3.0);S.add(pl);
+
+// View presets
+function view(pos,target){C.position.set(...pos);O.target.set(...target);O.update();}
+document.getElementById('front').onclick=()=>view([2.85,1.35,0.95],[1.72,1.25,.05]);
+document.getElementById('sofa').onclick=()=>view([2.75,1.20,3.45],[1.72,1.0,.2]);
+document.getElementById('door').onclick=()=>view([4.95,1.35,.75],[3.2,1.05,2.0]);
+document.getElementById('top').onclick=()=>view([2.85,7.8,2.05],[2.85,0,2.05]);
+document.getElementById('ceiling').onclick=()=>{ceiling.visible=!ceiling.visible;};
+
+addEventListener('resize',()=>{C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix();R.setSize(innerWidth,innerHeight);});
+(function loop(){requestAnimationFrame(loop);O.update();R.render(S,C)})();
+</script>
+</body>
+</html>
